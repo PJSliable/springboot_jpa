@@ -92,6 +92,16 @@ public class OrderRepository {
         return query.getResultList();
     }
 
+    //join으로 한번에 다 가져옴. LAZY 무시.
+    //기본 강의로 fetch join에 대해서 완벽히 이해하고 넘어가기
+    public List<Order> findAllWithMemberDelivery() {
+        return em.createQuery(
+                "select o from Order o" +
+                        " join fetch o.member m" +
+                        " join fetch o.delivery d", Order.class
+        ).getResultList();
+    }
+
     /**
      * Querydsl: 동적 쿼리 해결, 정적 쿼리도 복잡하다면 Querydsl로 짜는 것을 권유
      */
