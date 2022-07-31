@@ -53,7 +53,7 @@ public class MemberController {
     //2. password 같은 정보가 그대로 노출될 수 있음
     @GetMapping("/members")
     public String list(Model model) {
-        model.addAttribute("members", memberService.findMember());
+        model.addAttribute("members", memberService.findMembers());
         return "members/memberList";
     }
 }

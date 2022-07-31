@@ -55,11 +55,17 @@ public class MemberService {
 
     //회원 전체 조회
     //조회하는 곳에서는 읽기전용으로 설정하면 성능이 최적화됨
-    public List<Member> findMember() {
+    public List<Member> findMembers() {
         return memberRepository.findAll();
     }
 
     public Member findOne(Long memberId) {
         return memberRepository.findOne(memberId);
+    }
+
+    @Transactional
+    public void update(Long id, String name) {
+        Member member = memberRepository.findOne(id);
+        member.setName(name);
     }
 }
