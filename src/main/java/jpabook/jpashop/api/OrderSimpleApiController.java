@@ -86,7 +86,7 @@ public class OrderSimpleApiController {
     //레포지토리 재사용성이 떨어짐, API 스펙에 맞춘 코드가 레포지토리에 들어가는 단점점    @GetMapping("/api/v4/simple-orders")
     @GetMapping("/api/v4/simple-orders")
     public List<OrderSimpleQueryDto> ordersV4() {
-        return orderSimpleQueryRepository.findOrerDtos();
+        return orderSimpleQueryRepository.findOrderDtos();
     }
 
 
