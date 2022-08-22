@@ -6,14 +6,16 @@ import jpabook.jpashop.domain.OrderItem;
 import jpabook.jpashop.domain.OrderStatus;
 import jpabook.jpashop.repository.OrderRepository;
 import jpabook.jpashop.repository.OrderSearch;
+import jpabook.jpashop.repository.order.query.OrderQueryDto;
+import jpabook.jpashop.repository.order.query.OrderQueryRepository;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.*;
 
@@ -25,8 +27,9 @@ import static java.util.stream.Collectors.*;
 @RequiredArgsConstructor
 public class OrderApiController {
     private final OrderRepository orderRepository;
+    private final OrderQueryRepository orderQueryRepository;
 
-    @GetMapping("api/v1/orders")
+    @GetMapping("/api/v1/orders")
     public List<Order> ordersV1() {
         //LAZY 로딩에 대해서 컨트롤 해줘야 함. 여기서는 넘어감
         List<Order> all = orderRepository.findAllByString(new OrderSearch());
@@ -44,7 +47,7 @@ public class OrderApiController {
     }
 
 
-    @GetMapping("api/v2/orders")
+    @GetMapping("/api/v2/orders")
     public List<OrderDto> ordersV2() {
         //LAZY 로딩에 대해서 컨트롤 해줘야 함. 여기서는 넘어감
 
@@ -65,11 +68,45 @@ public class OrderApiController {
     // -> 1:N:M 이면 N*M로 데이터가 뻥튀기 됨
     // -> 무엇을 기준으로 데이터를 가져와야하는지 모르게 될 수 있음: 데이터 정확성이 떨어짐(개수가 안맞거나 하는 등)
     // 보통 경고를 냄
+
+    @GetMapping("/api/v3/orders")
     public List<OrderDto> ordersV3() {
         return orderRepository.findAllWithItem().stream()
                 .map(OrderDto::new)
                 .collect(toList());
     }
+
+//    한계돌파 - 페이징 + 컬렉션 엔티티 조회 방법
+//    - 먼저 ToOne 관계를 모두 패치조인 한다
+//    : ToOne 관계는 row 수를 증가시키지 않으므로 페이징 쿼리에 영향을 주지 않는다.
+//    - 컬렉션은 지연 로딩으로 조회한다.(패치 조인 X)
+//    - 지연 로딩 성능 최적화를 위해 적용할 것
+//        1. hibernate.default_batch_fetch_size: 글로벌하게 적용, 적어놓은 개수 만큼 미리 가져옴 - 주로 활용
+//        2. @BatchSize: 특정 엔티티에 디테일하게 적용, 1:N 관계에서는 1에 적기
+    @GetMapping("/api/v3.1/orders")
+    public List<OrderDto> ordersV3_page(
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "limit", defaultValue = "100") int limit) {
+    return orderRepository.findAllWithMemberDelivery(offset, limit).stream()
+            .map(OrderDto::new)
+            .collect(toList());
+    }
+
+
+    //Query: 루트 1번, 컬렉션 N번 실행
+    //ToOne(N:1, 1:1)관계들을 먼저 조회하고 ToMany(1:N)관걔는 각각 별도로 처리한다.
+    //-> ToOne 관계는 조인하면 row 수가 증가하지 않는다.
+    //-> ToMany 관계는 조인하면 row 수가 증가한다.
+    //row 수가 증가하지 않는 ToOne 관계는 조인으로 최적화하기 쉬우므로 한번에 조회,
+    //ToMany 관계는 최적화하기 어려우므로 findOrderItems() 같은 별도의 메서드로 조
+    @GetMapping("/api/v4/orders")
+    public List<OrderQueryDto> ordersV4() {
+        return orderQueryRepository.findOrderQueryDtos();
+    }
+
+
+
+
 
     @Getter
     static class OrderDto {
